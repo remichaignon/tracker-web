@@ -16,3 +16,6 @@
 .DS_Store
 Thumbs.db
 /coverage/*
+
+# token protection
+/app/controllers/auth.js
