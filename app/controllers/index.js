@@ -1,15 +1,15 @@
 export default Ember.Controller.extend({
-	userOrOrganisation: null,
+	userOrOrganization: null,
 
 	actions: {
 		track: function () {
-			var userOrOrganisation = this.get("userOrOrganisation");
+			var userOrOrganization = this.get("userOrOrganization");
 
-			if (!userOrOrganisation) {
+			if (!userOrOrganization) {
 				return;
 			}
 
-			this.transitionToRoute("main.index", userOrOrganisation);
+			this.transitionToRoute("main.index", userOrOrganization);
 		}
 	}
 });
