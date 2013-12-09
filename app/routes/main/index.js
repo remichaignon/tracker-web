@@ -4,6 +4,8 @@ import Size from "appkit/models/size";
 import Team from "appkit/models/team";
 
 export default Ember.Route.extend({
+    userOrOrganization: null,
+
 	beforeModel: function () {
 		if (!this.controllerFor("auth").get("token")) {
 			this.transitionTo("main.login");
@@ -14,9 +16,13 @@ export default Ember.Route.extend({
         var _this = this,
             userOrOrganization = this.modelFor("main").userOrOrganization;
 
+        if (!userOrOrganization) return;
+
+        this.set("userOrOrganization", userOrOrganization);
+
         // 1. Get or create tracker repository
         // 1.a Try to get the tracker repository
-        this.getTrackerRepository(userOrOrganization)
+        this.getTrackerRepository()
             .then(
                 function (trackerRepository) {
                     _this.setupWithTrackerRepository(trackerRepository);
@@ -30,7 +36,7 @@ export default Ember.Route.extend({
                             },
                             function () {
                                 // 1.c Try to create the tracker repository as an organization
-                                _this.createTrackerRepositoryAsOrganization(userOrOrganization)
+                                _this.createTrackerRepositoryAsOrganization()
                                     .then(
                                         function (trackerRepository) {
                                             _this.setupWithTrackerRepository(trackerRepository);
@@ -47,80 +53,23 @@ export default Ember.Route.extend({
             controller = this.controllerFor("main.index");
 
         // 2. Get labels
-        this.getAllLabelsForTrackerRepository(trackerRepository.owner.login)
+        this.getAllLabelsForTrackerRepository()
             .then(
                 function (labels) {
                     // 3. Get or create buckets
-                    var bucketsFromLabels = labels.filter(
-                        function (item) {
-                            if (item.name.substr(-3) === ".bk") return true;
-                        }
-                    );
-
-                    var finishBucketParsing = function (bucketLabels) {
-                        controller.set("buckets", _this.parseBucketsFromLabels(bucketLabels));
-                        return labels;
-                    };
-
-                    if (!bucketsFromLabels.length) {
-                        return _this.addDefaultBucketLabels(trackerRepository.owner.login).then(
-                            function (addedBucketLabels) {
-                                return finishBucketParsing(addedBucketLabels);
-                            }
-                        );
-                    }
-
-                    return finishBucketParsing(bucketsFromLabels);
+                    return _this.getOrCreateLabels(labels, ".bk", Bucket, "buckets", "defaultBuckets");
                 }
             )
             .then(
                 function (labels) {
                     // 4. Get or create sizes
-                    var sizesFromLabels = labels.filter(
-                        function (item) {
-                            if (item.name.substr(-3) === ".sz") return true;
-                        }
-                    );
-
-                    var finishSizeParsing = function (sizeLabels) {
-                        controller.set("sizes", _this.parseSizesFromLabels(sizeLabels));
-                        return labels;
-                    };
-
-                    if (!sizesFromLabels.length) {
-                        return _this.addDefaultSizeLabels(trackerRepository.owner.login).then(
-                            function (addedSizeLabels) {
-                                return finishSizeParsing(addedSizeLabels);
-                            }
-                        );
-                    }
-
-                    return finishSizeParsing(sizesFromLabels);
+                    return _this.getOrCreateLabels(labels, ".sz", Size, "sizes", "defaultSizes");
                 }
             )
             .then(
                 function (labels) {
                     // 5. Get or create teams
-                    var teamsFromLabels = labels.filter(
-                        function (item) {
-                            if (item.name.substr(-3) === ".tm") return true;
-                        }
-                    );
-
-                    var finishTeamParsing = function (teamLabels) {
-                        controller.set("teams", _this.parseTeamsFromLabels(teamLabels));
-                        return labels;
-                    };
-
-                    if (!teamsFromLabels.length) {
-                        return _this.addDefaultTeamLabels(trackerRepository.owner.login).then(
-                            function (addedTeamLabels) {
-                                return finishTeamParsing(addedTeamLabels);
-                            }
-                        );
-                    }
-
-                    return finishTeamParsing(teamsFromLabels);
+                    return _this.getOrCreateLabels(labels, ".tm", Team, "teams", "defaultTeams");
                 }
             );
         // 6. Get issues
@@ -128,9 +77,9 @@ export default Ember.Route.extend({
         // 8. Done?
     },
 
-    // Tracker get or create functions
-    getTrackerRepository: function (userOrOrganization) {
-        return this.controllerFor("auth").request("GET", "/repos/" + userOrOrganization + "/tracker");
+    // Tracker repository get or create functions
+    getTrackerRepository: function () {
+        return this.controllerFor("auth").request("GET", "/repos/" + this.get("userOrOrganization") + "/tracker");
     },
     buildTrackerRepositoryObject: function () {
         return {
@@ -146,90 +95,78 @@ export default Ember.Route.extend({
     createTrackerRepositoryAsUser: function () {
         return this.controllerFor("auth").request("POST", "/user/repos", { data: this.buildTrackerRepositoryObject() });
     },
-    createTrackerRepositoryAsOrganization: function (userOrOrganization) {
-        return this.controllerFor("auth").request("POST", "/orgs/" + userOrOrganization + "/repos", { data: this.buildTrackerRepositoryObject() });
+    createTrackerRepositoryAsOrganization: function () {
+        return this.controllerFor("auth").request("POST", "/orgs/" + this.get("userOrOrganization") + "/repos", { data: this.buildTrackerRepositoryObject() });
     },
     parseTrackerRepository: function (trackerRepositoryObject) {
         return Repository.create(trackerRepositoryObject);
     },
 
     // Labels get or create functions
-    getAllLabelsForTrackerRepository: function (userOrOrganization) {
-        return this.controllerFor("auth").request("GET", "/repos/" + userOrOrganization + "/tracker/labels");
+    getAllLabelsForTrackerRepository: function () {
+        return this.controllerFor("auth").request("GET", "/repos/" + this.get("userOrOrganization") + "/tracker/labels");
     },
-    parseBucketsFromLabels: function (bucketLabels) {
-        var buckets = [];
+    createLabel: function (labelObject) {
+        return this.controllerFor("auth").request("POST", "/repos/" + this.get("userOrOrganization") + "/tracker/labels", { data: labelObject });
+    },
+    addDefaultLabels: function (defaultLabelAttributeName) {
+        var _this = this,
+            createLabelRequests = [],
+            defaultLabels = this.controllerFor("main.settings").get(defaultLabelAttributeName);
 
-        bucketLabels.forEach(
+        defaultLabels.forEach(
             function (element) {
-                buckets.push(Bucket.create(element));
+                createLabelRequests.push(_this.createLabel(element));
             }
         );
 
-        return buckets;
-    },
-    addDefaultBucketLabels: function (userOrOrganization) {
-        var createBucketLabelRequests = [],
-            auth = this.controllerFor("auth"),
-            defaultBuckets = this.controllerFor("main.settings").get("defaultBuckets");
+        return Ember.RSVP.all(createLabelRequests);
 
-        defaultBuckets.forEach(
+    },
+    filterLabels: function (labels, key) {
+        return labels.filter(
+            function (label) {
+                if (label.name.substr(-3) === key) return true;
+            }
+        );
+    },
+    parseLabels: function (labels, classLabel) {
+        var instances = [];
+
+        labels.forEach(
             function (element) {
-                createBucketLabelRequests.push(auth.request("POST", "/repos/" + userOrOrganization + "/tracker/labels", { data: element }));
+                instances.push(classLabel.create(element));
             }
         );
 
-        return Ember.RSVP.all(createBucketLabelRequests);
+        return instances;
     },
-    parseSizesFromLabels: function (sizeLabels) {
-        var sizes = [];
+    buildFinishLabelParsingFunction: function (classLabel, attribute, allLabels) {
+        var _this = this,
+            controller = this.controllerFor("main.index");
 
-        sizeLabels.forEach(
-            function (element) {
-                sizes.push(Size.create(element));
-            }
-        );
-
-        return sizes;
+        return function (labels) {
+            controller.set(attribute, _this.parseLabels(labels, classLabel));
+            return allLabels;
+        };
     },
-    addDefaultSizeLabels: function (userOrOrganization) {
-        var createSizeLabelRequests = [],
-            auth = this.controllerFor("auth"),
-            defaultSizes = this.controllerFor("main.settings").get("defaultSizes");
+    getOrCreateLabels: function (allLabels, key, classLabel, attribute, defaultAttribute) {
+        var fromLabels = this.filterLabels(allLabels, key),
+            finishParsing = this.buildFinishLabelParsingFunction(classLabel, attribute, allLabels);
 
-        defaultSizes.forEach(
-            function (element) {
-                createSizeLabelRequests.push(auth.request("POST", "/repos/" + userOrOrganization + "/tracker/labels", { data: element }));
-            }
-        );
+        if (!fromLabels.length) {
+            return this.addDefaultLabels(defaultAttribute).then(
+                function (addedLabels) {
+                    return finishParsing(addedLabels);
+                }
+            );
+        }
 
-        return Ember.RSVP.all(createSizeLabelRequests);
-    },
-    parseTeamsFromLabels: function (teamLabels) {
-        var teams = [];
-
-        teamLabels.forEach(
-            function (element) {
-                teams.push(Team.create(element));
-            }
-        );
-
-        return teams;
-    },
-    addDefaultTeamLabels: function (userOrOrganization) {
-        var createTeamLabelRequests = [],
-            auth = this.controllerFor("auth"),
-            defaultTeams = this.controllerFor("main.settings").get("defaultTeams");
-
-        defaultTeams.forEach(
-            function (element) {
-                createTeamLabelRequests.push(auth.request("POST", "/repos/" + userOrOrganization + "/tracker/labels", { data: element }));
-            }
-        );
-
-        return Ember.RSVP.all(createTeamLabelRequests);
+        return finishParsing(fromLabels);
     },
 
-    getAllIssuesForTrackerRepository: function () {},
+    getAllIssuesForTrackerRepository: function () {
+        return this.controllerFor("auth").request("GET", "/repos/" + this.get("userOrOrganization") + "/tracker/issues");
+    },
     parseIssue: function () {}
 });

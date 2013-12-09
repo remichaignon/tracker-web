@@ -1,4 +1,5 @@
 export default Ember.Object.extend({
+    url: null,
     name: null,
     color: null,
 

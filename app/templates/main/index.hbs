@@ -1,7 +1,7 @@
-MAIN INDEX
+<h2>Tracker</h2>
 
 <ul>
-    {{#each buckets}}
+    {{#each sortedBuckets}}
         <li>{{name}} - {{readableName}} - {{priority}}</li>
     {{else}}
         PARSING BUCKETS...
@@ -10,7 +10,7 @@ MAIN INDEX
 
 <ul>
     {{#each sizes}}
-        <li>{{name}}</li>
+        <li>{{name}} - {{readableName}}</li>
     {{else}}
         PARSING SIZES...
     {{/each}}
@@ -18,7 +18,7 @@ MAIN INDEX
 
 <ul>
     {{#each teams}}
-        <li>{{name}}</li>
+        <li>{{name}} - {{readableName}}</li>
     {{else}}
         PARSING TEAMS...
     {{/each}}
