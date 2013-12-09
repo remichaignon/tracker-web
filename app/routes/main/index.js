@@ -19,6 +19,7 @@ export default Ember.Route.extend({
         if (!userOrOrganization) return;
 
         this.set("userOrOrganization", userOrOrganization);
+        this.controllerFor("main.index").set("userOrOrganization", userOrOrganization);
 
         // 1. Get or create tracker repository
         // 1.a Try to get the tracker repository
@@ -71,9 +72,19 @@ export default Ember.Route.extend({
                     // 5. Get or create teams
                     return _this.getOrCreateLabels(labels, ".tm", Team, "teams", "defaultTeams");
                 }
-            );
-        // 6. Get issues
-        // 7. Parse issues
+            )
+            .then(
+                function () {
+                    // 6. Get issues
+                    return _this.getAllIssuesForTrackerRepository();
+                }
+            )
+            .then(
+                function (issues) {
+                    // 7. Store issues
+                    controller.set("issues", issues);
+                });
+
         // 8. Done?
     },
 
@@ -165,8 +176,8 @@ export default Ember.Route.extend({
         return finishParsing(fromLabels);
     },
 
+    // Issues get functions
     getAllIssuesForTrackerRepository: function () {
         return this.controllerFor("auth").request("GET", "/repos/" + this.get("userOrOrganization") + "/tracker/issues");
-    },
-    parseIssue: function () {}
+    }
 });

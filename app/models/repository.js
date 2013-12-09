@@ -29,5 +29,11 @@ export default Ember.Object.extend({
     source: null,
     has_issues: null,
     has_wiki: null,
-    has_downloads: null
+    has_downloads: null,
+
+    buckets: null,
+    sizes: null,
+    teams: null,
+
+    issues: null
 });

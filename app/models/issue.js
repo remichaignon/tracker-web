@@ -13,5 +13,11 @@ export default Ember.Object.extend({
     pull_request: null,
     closed_at: null,
     created_at: null,
-    updated_at: null
+    updated_at: null,
+
+    repository: null,
+
+    bucket: null,
+    size: null,
+    team: null
 });

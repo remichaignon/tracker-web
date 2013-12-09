@@ -1,5 +1,19 @@
 <h2>Tracker</h2>
 
+<div>
+    {{#if newIssue}}
+        <form {{action "createIssue" on="submit"}}>
+            {{input valueBinding="newIssue.title"}}
+            {{input valueBinding="newIssue.body"}}
+            {{view Ember.Select contentBinding="sizes" optionLabelPath="content.readableName" selectionBinding="newIssue.size"}}
+            {{view Ember.Select contentBinding="teams" optionLabelPath="content.readableName" selectionBinding="newIssue.team"}}
+            <button type="submit">Create</button>
+        </form>
+    {{else}}
+        <button {{action "showIssueCreator" on="click"}}>Create an issue</button>
+    {{/if}}
+</div>
+
 <ul>
     {{#each sortedBuckets}}
         <li>{{name}} - {{readableName}} - {{priority}}</li>
