@@ -10,7 +10,7 @@ Follow [Ember App Kit's instruction](http://iamstef.net/ember-app-kit/guides/get
 And don't forget to create your own `app/controllers/auth.js` by copying `app/controllers/auth.js.tpl` and adding your own personal access token ([that you can create here](https://github.com/settings/applications))
 
 
-TODO:
+## TODO:
 - Prioritize issues (comment in the body)
 - Error handling
 - Add, edit, delete, prioritize buckets
