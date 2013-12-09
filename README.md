@@ -6,6 +6,7 @@ Web application for tracker repository
 
 TODO:
 - Prioritize issues (comment in the body)
+- Error handling
 - Add, edit, delete, prioritize buckets
 - Add, edit, delete sizes
 - Add, edit, delete teams

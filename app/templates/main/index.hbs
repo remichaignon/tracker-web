@@ -15,25 +15,20 @@
 </div>
 
 <ul>
-    {{#each sortedBuckets}}
-        <li>{{name}} - {{readableName}} - {{priority}}</li>
+    {{#each issuesByBuckets}}
+        <li>{{readableName}}</li>
+        <ul>
+            {{#each issues}}
+                <li>
+                    {{title}} - {{body}} - {{size.readableName}} - {{team.readableName}}
+                    <button {{action "moveIssueToPreviousBucket" this on="click"}}>Previous</button>
+                    <button {{action "moveIssueToNextBucket" this on="click"}}>Next</button>
+                </li>
+            {{else}}
+                NO ISSUES
+            {{/each}}
+        </ul>
     {{else}}
-        PARSING BUCKETS...
-    {{/each}}
-</ul>
-
-<ul>
-    {{#each sizes}}
-        <li>{{name}} - {{readableName}}</li>
-    {{else}}
-        PARSING SIZES...
-    {{/each}}
-</ul>
-
-<ul>
-    {{#each teams}}
-        <li>{{name}} - {{readableName}}</li>
-    {{else}}
-        PARSING TEAMS...
+        PARSING ISSUES...
     {{/each}}
 </ul>

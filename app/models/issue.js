@@ -19,5 +19,35 @@ export default Ember.Object.extend({
 
     bucket: null,
     size: null,
-    team: null
+    team: null,
+
+    asObject: function () {
+        if (!this.get("label.length")) this.set("labels", []);
+
+        var labels = this.get("labels");
+
+        labels.push(this.get("size.name"));
+        labels.push(this.get("team.name"));
+        labels.push(this.get("bucket.name"));
+
+        this.set("labels", labels);
+
+        return this.getProperties(
+            "url",
+            "html_url",
+            "number",
+            "state",
+            "title",
+            "body",
+            "user",
+            "labels",
+            "assignee",
+            "milestone",
+            "comments",
+            "pull_request",
+            "closed_at",
+            "created_at",
+            "updated_at"
+        );
+    }
 });

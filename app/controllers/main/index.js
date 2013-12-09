@@ -24,10 +24,28 @@ export default Ember.Controller.extend({
         );
     }.property("buckets"),
     issuesByBuckets: function () {
-        //if (!this.get("issues") || !this.get("buckets")) return;
+        if (!this.get("issues") || !this.get("sortedBuckets")) return;
 
-        //
-    }.property("issues", "buckets"),
+        var issuesByBuckets = this.get("sortedBuckets").copy();
+
+        issuesByBuckets.forEach(
+            function (element) {
+                element.set("issues", []);
+            }
+        );
+
+        this.get("issues").forEach(
+            function (element) {
+                var bucket = issuesByBuckets.findProperty("name", element.get("bucket.name"));
+
+                if (bucket) {
+                    bucket.issues.push(element);
+                }
+            }
+        );
+
+        return issuesByBuckets;
+    }.property("issues.@each.bucket", "sortedBuckets"),
 
     actions: {
         showIssueCreator: function () {
@@ -46,40 +64,60 @@ export default Ember.Controller.extend({
             // 4. Enfore team
             if (!this.get("newIssue.team")) return;
 
+            // 5. Create request
+            this.set("newIssue.bucket", this.get("buckets.firstObject"));
 
-            var labels = [],
-                issue = this.get("newIssue");
-
-            // 5. Transform size into label
-            labels.push(issue.get("size.name"));
-
-            // 6. Transform team into label
-            labels.push(issue.get("team.name"));
-
-            // 7. Set bucket to default (first one)
-            labels.push(this.get("buckets.firstObject.name"));
-
-            // 8. Create request
-            issue.set("labels", labels);
-
-            this.get("controllers.auth").request("POST", "/repos/" + this.get("userOrOrganization") + "/tracker/issues", { data: issue })
+            this.get("controllers.auth").request("POST", "/repos/" + this.get("userOrOrganization") + "/tracker/issues", { data: this.get("newIssue").asObject() })
                 .then(
-                    function () {
+                    function (githubIssue) {
+                        // TODO: Parse the issue right away
                         this.set("newIssue", null);
                     }
                 );
         },
         showIssueEditor: function () {},
         editIssue: function () {},
-        moveIssueToNextBucket: function () {
+        moveIssueToNextBucket: function (issue) {
+            if (!issue) return;
+
             // 1. Get current bucket
+            var currentBucket = issue.get("bucket");
+
             // 2. Get next bucket
+            var nextBucket = this.get("buckets").findProperty("priority", currentBucket.get("priority") + 1);
+
+            if (!nextBucket) return;
+
+            issue.set("bucket", nextBucket);
+
             // 3. Swap buckets
+            this.get("controllers.auth").request("PATCH", "/repos/" + this.get("userOrOrganization") + "/tracker/issues/" + issue.get("number"), { data: issue.asObject() })
+                .then(
+                    function () {
+                        // TODO: Parse issue right away
+                    }
+                );
         },
-        moveIssueToPreviousBucket: function () {
+        moveIssueToPreviousBucket: function (issue) {
+            if (!issue) return;
+
             // 1. Get current bucket
+            var currentBucket = issue.get("bucket");
+
             // 2. Get previous bucket
+            var previousBucket = this.get("buckets").findProperty("priority", currentBucket.get("priority") - 1);
+
+            if (!previousBucket) return;
+
+            issue.set("bucket", previousBucket);
+
             // 3. Swap buckets
+            this.get("controllers.auth").request("PATCH", "/repos/" + this.get("userOrOrganization") + "/tracker/issues/" + issue.get("number"), { data: issue.asObject() })
+                .then(
+                    function () {
+                        // TODO: Parse issue right away
+                    }
+                );
         },
         closeIssue: function () {}
     }

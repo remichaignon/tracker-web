@@ -2,6 +2,7 @@ import Repository from "appkit/models/repository";
 import Bucket from "appkit/models/bucket";
 import Size from "appkit/models/size";
 import Team from "appkit/models/team";
+import Issue from "appkit/models/issue";
 
 export default Ember.Route.extend({
     userOrOrganization: null,
@@ -82,7 +83,7 @@ export default Ember.Route.extend({
             .then(
                 function (issues) {
                     // 7. Store issues
-                    controller.set("issues", issues);
+                    controller.set("issues", _this.parseIssues(issues));
                 });
 
         // 8. Done?
@@ -179,5 +180,35 @@ export default Ember.Route.extend({
     // Issues get functions
     getAllIssuesForTrackerRepository: function () {
         return this.controllerFor("auth").request("GET", "/repos/" + this.get("userOrOrganization") + "/tracker/issues");
+    },
+    parseIssues: function (githubIssues) {
+        var _this = this,
+            controller = this.controllerFor("main.index"),
+            buckets = controller.get("buckets"),
+            sizes = controller.get("sizes"),
+            teams = controller.get("teams"),
+            issues = [];
+
+        githubIssues.forEach(
+            function (githubIssue) {
+                var issue = Issue.create(githubIssue),
+                    bucketLabels = _this.filterLabels(issue.get("labels"), ".bk"),
+                    sizeLabels = _this.filterLabels(issue.get("labels"), ".sz"),
+                    teamLabels = _this.filterLabels(issue.get("labels"), ".tm");
+
+                // TODO: Handle issues with missing / too many labels
+                if (bucketLabels.length !== 1) return;
+                if (sizeLabels.length !== 1) return;
+                if (teamLabels.length !== 1) return;
+
+                issue.set("bucket", buckets.findProperty("name", bucketLabels[0].name));
+                issue.set("size", sizes.findProperty("name", sizeLabels[0].name));
+                issue.set("team", teams.findProperty("name", teamLabels[0].name));
+
+                issues.push(issue);
+            }
+        );
+
+        return issues;
     }
 });
