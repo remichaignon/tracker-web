@@ -1,1 +1,25 @@
 MAIN INDEX
+
+<ul>
+    {{#each buckets}}
+        <li>{{name}} - {{readableName}} - {{priority}}</li>
+    {{else}}
+        PARSING BUCKETS...
+    {{/each}}
+</ul>
+
+<ul>
+    {{#each sizes}}
+        <li>{{name}}</li>
+    {{else}}
+        PARSING SIZES...
+    {{/each}}
+</ul>
+
+<ul>
+    {{#each teams}}
+        <li>{{name}}</li>
+    {{else}}
+        PARSING TEAMS...
+    {{/each}}
+</ul>
