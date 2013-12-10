@@ -1,57 +1,41 @@
 import Issue from "appkit/models/issue";
 
-export default Ember.Controller.extend({
+export default Ember.ObjectController.extend({
     needs: ["auth"],
 
-    repository: null,
-
-    buckets: null,
-    sizes: null,
-    teams: null,
-
-    issues: null,
-
     newIssue: null,
-    userOrOrganization: null,
 
-    sortedBuckets: function () {
-        if (!this.get("buckets")) return;
-
-        return this.get("buckets").sort(
-            function (a, b) {
-                return a.get("priority") - b.get("priority");
-            }
-        );
-    }.property("buckets"),
     issuesByBuckets: function () {
-        if (!this.get("issues") || !this.get("sortedBuckets")) return;
+        if (!this.get("issues") || !this.get("buckets")) return;
 
-        var issuesByBuckets = this.get("sortedBuckets").copy();
+        var issuesByBuckets = this.get("buckets").copy();
 
         issuesByBuckets.forEach(
-            function (element) {
-                element.set("issues", []);
+            function (bucket) {
+                bucket.set("issues", []);
             }
         );
 
         this.get("issues").forEach(
-            function (element) {
-                var bucket = issuesByBuckets.findProperty("name", element.get("bucket.name"));
+            function (issue) {
+                var bucket = issuesByBuckets.findProperty("name", issue.get("bucket.name"));
 
                 if (bucket) {
-                    bucket.issues.push(element);
+                    bucket.issues.push(issue);
                 }
             }
         );
 
         return issuesByBuckets;
-    }.property("issues.@each.bucket", "sortedBuckets"),
+    }.property("issues", "issues.@each.bucket", "buckets"),
 
     actions: {
         showIssueCreator: function () {
             this.set("newIssue", Issue.create());
         },
         createIssue: function () {
+            var _this = this;
+
             // 1. Enforce title
             if (!this.get("newIssue.title")) return;
 
@@ -65,13 +49,14 @@ export default Ember.Controller.extend({
             if (!this.get("newIssue.team")) return;
 
             // 5. Create request
+            var repository = this.get("model");
             this.set("newIssue.bucket", this.get("buckets.firstObject"));
 
-            this.get("controllers.auth").request("POST", "/repos/" + this.get("userOrOrganization") + "/tracker/issues", { data: this.get("newIssue").asObject() })
+            repository.createIssue(this.get("controllers.auth"), this.get("newIssue").asObject())
                 .then(
-                    function (githubIssue) {
-                        // TODO: Parse the issue right away
-                        this.set("newIssue", null);
+                    function (issueObject) {
+                        _this.get("issues").pushObject(Issue.parse(issueObject, repository));
+                        _this.set("newIssue", null);
                     }
                 );
         },
@@ -88,15 +73,9 @@ export default Ember.Controller.extend({
 
             if (!nextBucket) return;
 
-            issue.set("bucket", nextBucket);
-
             // 3. Swap buckets
-            this.get("controllers.auth").request("PATCH", "/repos/" + this.get("userOrOrganization") + "/tracker/issues/" + issue.get("number"), { data: issue.asObject() })
-                .then(
-                    function () {
-                        // TODO: Parse issue right away
-                    }
-                );
+            issue.set("bucket", nextBucket);
+            issue.patch(this.get("controllers.auth"));
         },
         moveIssueToPreviousBucket: function (issue) {
             if (!issue) return;
@@ -109,15 +88,9 @@ export default Ember.Controller.extend({
 
             if (!previousBucket) return;
 
-            issue.set("bucket", previousBucket);
-
             // 3. Swap buckets
-            this.get("controllers.auth").request("PATCH", "/repos/" + this.get("userOrOrganization") + "/tracker/issues/" + issue.get("number"), { data: issue.asObject() })
-                .then(
-                    function () {
-                        // TODO: Parse issue right away
-                    }
-                );
+            issue.set("bucket", previousBucket);
+            issue.patch(this.get("controllers.auth"));
         },
         closeIssue: function () {}
     }

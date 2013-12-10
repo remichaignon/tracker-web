@@ -1,4 +1,8 @@
-export default Ember.Object.extend({
+import Model from "appkit/models/model";
+
+import Label from "appkit/models/label";
+
+var Issue = Model.extend({
     url: null,
     html_url: null,
     number: null,
@@ -49,5 +53,74 @@ export default Ember.Object.extend({
             "created_at",
             "updated_at"
         );
+    },
+
+    patch: function (controller) {
+        return controller.request("PATCH", "/repos/" + this.get("repository.owner.login") + "/tracker/issues/" + this.get("number"), { data: this.asObject() });
     }
 });
+
+Issue.reopenClass({
+    findAll: function (controller, repository) {
+        var _this = this;
+
+        return controller.request("GET", "/repos/" + repository.get("owner.login") + "/tracker/issues")
+            .then(
+                function (issues) {
+                    return issues.map(
+                        function (issue) {
+                            return _this.parse(issue, repository);
+                        }
+                    );
+                }
+            );
+    },
+
+    parse: function (issueObject, repository) {
+        var issue = Issue.create(issueObject),
+            labels = issue.get("labels"),
+            buckets = [],
+            sizes = [],
+            teams = [];
+
+        issue.set("repository", repository);
+
+        labels = labels.map(
+            function (label) {
+                return Label.create(label);
+            }
+        );
+
+        // Extract key labels
+        for (var i = 0; i < labels.length; i++) {
+            var label = labels[i];
+
+            if (label.hasKey(".bk")) {
+                buckets.push(label);
+                continue;
+            }
+            if (label.hasKey(".sz")) {
+                sizes.push(label);
+                continue;
+            }
+            if (label.hasKey(".tm")) {
+                teams.push(label);
+                continue;
+            }
+        }
+
+
+        // TODO: Handle issues with missing / too many labels
+        if (buckets.length !== 1) return;
+        if (sizes.length !== 1) return;
+        if (teams.length !== 1) return;
+
+        issue.set("bucket", repository.get("buckets").findProperty("name", buckets[0].name));
+        issue.set("size", repository.get("sizes").findProperty("name", sizes[0].name));
+        issue.set("team", repository.get("teams").findProperty("name", teams[0].name));
+
+        return issue;
+    }
+});
+
+export default Issue;
