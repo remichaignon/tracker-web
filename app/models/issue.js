@@ -19,44 +19,50 @@ var Issue = Model.extend({
     created_at: null,
     updated_at: null,
 
+    priority: 0,
+
     repository: null,
 
     bucket: null,
     size: null,
     team: null,
 
-    asObject: function () {
-        if (!this.get("label.length")) this.set("labels", []);
+    metaCommentId: null,
+
+    metadata: function () {
+        return JSON.stringify(
+            {
+                priority: this.get("priority")
+            }
+        );
+    }.property("priority"),
+
+    object: function () {
+        if (!this.get("labels.length")) this.set("labels", []);
 
         var labels = this.get("labels");
 
+        labels.push(this.get("bucket.name"));
         labels.push(this.get("size.name"));
         labels.push(this.get("team.name"));
-        labels.push(this.get("bucket.name"));
 
         this.set("labels", labels);
 
         return this.getProperties(
-            "url",
-            "html_url",
-            "number",
             "state",
             "title",
             "body",
-            "user",
             "labels",
             "assignee",
-            "milestone",
-            "comments",
-            "pull_request",
-            "closed_at",
-            "created_at",
-            "updated_at"
+            "milestone"
         );
-    },
+    }.property("states", "title", "body", "labels", "assignee", "milestone", "bucket", "size", "team"),
 
     patch: function (controller) {
-        return controller.request("PATCH", "/repos/" + this.get("repository.owner.login") + "/tracker/issues/" + this.get("number"), { data: this.asObject() });
+        return controller.request("PATCH", "/repos/" + this.get("repository.owner.login") + "/tracker/issues/" + this.get("number"), { data: this.get("object") });
+    },
+    saveMetadata: function (controller) {
+        return Issue._patchFirstComment(controller, this.get("repository"), this, this.get("metadata"));
     }
 });
 
@@ -68,15 +74,17 @@ Issue.reopenClass({
             .then(
                 function (issues) {
                     return issues.map(
-                        function (issue) {
-                            return _this.parse(issue, repository);
+                        function (issueObject) {
+                            var issue = _this.build(issueObject, repository);
+                            _this._getOrCreateFirstComment(controller, repository, issue);
+                            return issue;
                         }
                     );
                 }
             );
     },
 
-    parse: function (issueObject, repository) {
+    build: function (issueObject, repository) {
         var issue = Issue.create(issueObject),
             labels = issue.get("labels"),
             buckets = [],
@@ -120,6 +128,61 @@ Issue.reopenClass({
         issue.set("team", repository.get("teams").findProperty("name", teams[0].name));
 
         return issue;
+    },
+
+    _getOrCreateFirstComment: function (controller, repository, issue) {
+        var _this = this;
+
+        return this._getFirstComment(controller, repository, issue)
+            .then(
+                function (comment) {
+                    return issue.setProperties(JSON.parse(comment.body));
+                },
+                function () {
+                    _this._createFirstComment(controller, repository, issue)
+                        .then(
+                            function (comment) {
+                                return issue.setProperties(JSON.parse(comment.body));
+                            }
+                            // TODO: Handle error
+                        );
+                }
+            );
+    },
+    _getFirstComment: function (controller, repository, issue) {
+        if (issue.get("metaCommentId")) {
+            return controller.request("GET", "/repos/" + repository.get("owner.login") + "/tracker/issues/comments/" + issue.get("metaCommentId"));
+        }
+        else {
+            return controller.request("GET", "/repos/" + repository.get("owner.login") + "/tracker/issues/" + issue.get("number") + "/comments")
+                .then(
+                    function (comments) {
+                        if (!comments.length) {
+                            // TODO: Handle error
+                            return Model.asRejectedPromise();
+                        }
+
+                        var firstComment = comments[0];
+                        issue.set("metaCommentId", firstComment.id);
+                        return firstComment;
+                    });
+        }
+    },
+    _createFirstComment: function (controller, repository, issue) {
+        return controller.request("POST", "/repos/" + repository.get("owner.login") + "/tracker/issues/" + issue.get("number") + "/comments", { data: { body: "{}" }})
+            .then(
+                function (comment) {
+                    issue.set("metaCommentId", comment.id);
+                    return comment;
+                });
+    },
+    _patchFirstComment: function (controller, repository, issue, body) {
+        if (!issue.get("metaCommentId")) {
+            // TODO: Handle error
+            return Model.asRejectedPromise();
+        }
+
+        return controller.request("PATCH", "/repos/" + repository.get("owner.login") + "/tracker/issues/comments/" + issue.get("metaCommentId"), { data: { body: body }});
     }
 });
 

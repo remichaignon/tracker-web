@@ -26,8 +26,18 @@ export default Ember.ObjectController.extend({
             }
         );
 
+        issuesByBuckets.forEach(
+            function (bucket) {
+                bucket.get("issues").sort(
+                    function (a, b) {
+                        return b.get("priority") - a.get("priority");
+                    }
+                );
+            }
+        );
+
         return issuesByBuckets;
-    }.property("issues", "issues.@each.bucket", "buckets"),
+    }.property("issues", "issues.@each.priority", "issues.@each.bucket", "buckets"),
 
     actions: {
         showIssueCreator: function () {
@@ -52,16 +62,28 @@ export default Ember.ObjectController.extend({
             var repository = this.get("model");
             this.set("newIssue.bucket", this.get("buckets.firstObject"));
 
-            repository.createIssue(this.get("controllers.auth"), this.get("newIssue").asObject())
+            repository.createIssue(this.get("controllers.auth"), this.get("newIssue.object"))
                 .then(
                     function (issueObject) {
-                        _this.get("issues").pushObject(Issue.parse(issueObject, repository));
+                        _this.get("issues").pushObject(Issue.build(issueObject, repository));
                         _this.set("newIssue", null);
                     }
                 );
         },
         showIssueEditor: function () {},
         editIssue: function () {},
+        increasePriority: function (issue) {
+            if (!issue) return;
+
+            issue.set("priority", issue.get("priority") + 1);
+            return issue.saveMetadata(this.get("controllers.auth"));
+        },
+        decreasePriority: function (issue) {
+            if (!issue) return;
+
+            issue.set("priority", issue.get("priority") - 1);
+            return issue.saveMetadata(this.get("controllers.auth"));
+        },
         moveIssueToNextBucket: function (issue) {
             if (!issue) return;
 
