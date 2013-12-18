@@ -2,7 +2,7 @@ import Main from "appkit/routes/main";
 
 var route;
 module("Unit - MainRoute", {
-    setup: function(){
+    setup: function () {
         var container = isolatedContainer([
             "route:main"
         ]);
