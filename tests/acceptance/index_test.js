@@ -1,24 +1,27 @@
 var App;
 
-module('Acceptances - Index', {
-  setup: function(){
-    App = startApp();
-  },
-  teardown: function() {
-    Ember.run(App, 'destroy');
-  }
+module("Acceptances - Index", {
+    setup: function () {
+        App = startApp();
+    },
+    teardown: function () {
+        Ember.run(App, "destroy");
+    }
 });
 
-test('index renders', function(){
-  expect(3);
+test("index renders", function () {
+    expect(6);
 
-  visit('/').then(function(){
-    var title = find('h2#title');
-    var list = find('ul li');
+    visit("/").then(function () {
+        ok(exists("h2#title"));
+        ok(exists("form"));
+        ok(exists("input"));
+        ok(exists("button"));
 
-    equal(title.text(), 'Welcome to Ember.js');
+        var title = find("h2#title"),
+            button = find("button");
 
-    equal(list.length, 3);
-    equal(list.text(), 'redyellowblue');
-  });
+        equal(title.text(), "Welcome to Tracker");
+        equal(button.text(), "Get tracking");
+    });
 });
