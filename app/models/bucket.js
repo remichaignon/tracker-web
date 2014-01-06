@@ -1,15 +1,8 @@
 import Label from "appkit/models/label";
 
 var Bucket = Label.extend({
-    readableName: function () {
-        var name = this.get("name");
-        name = name.substr(0, name.lastIndexOf("."));
-        return name.substr(0, name.lastIndexOf("."));
-    }.property("name"),
     priority: function () {
-        var name = this.get("name");
-        name = name.substr(0, name.lastIndexOf("."));
-        return parseInt(name.substr(name.lastIndexOf(".") + 1), 10);
+        return parseInt(this.get("name").split(".")[1] || 0, 10) || 0;
     }.property("name")
 });
 

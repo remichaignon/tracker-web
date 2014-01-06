@@ -1,11 +1,6 @@
 import Label from "appkit/models/label";
 
-var Size = Label.extend({
-    readableName: function () {
-        var name = this.get("name");
-        return name.substr(0, name.lastIndexOf("."));
-    }.property("name")
-});
+var Size = Label.extend({});
 
 Size.reopenClass({
     _defaults: [

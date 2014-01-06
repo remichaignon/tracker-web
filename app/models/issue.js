@@ -103,15 +103,15 @@ Issue.reopenClass({
         for (var i = 0; i < labels.length; i++) {
             var label = labels[i];
 
-            if (label.hasKey(".bk")) {
+            if (label.hasKey("bk")) {
                 buckets.push(label);
                 continue;
             }
-            if (label.hasKey(".sz")) {
+            if (label.hasKey("sz")) {
                 sizes.push(label);
                 continue;
             }
-            if (label.hasKey(".tm")) {
+            if (label.hasKey("tm")) {
                 teams.push(label);
                 continue;
             }

@@ -5,8 +5,16 @@ var Label = Model.extend({
     name: null,
     color: null,
 
+    readableName: function () {
+        return this.get("name").split(".")[0];
+    }.property("name"),
+    key: function () {
+        var splitted = this.get("name").split(".");
+        return splitted[splitted.length - 1];
+    }.property("name"),
+
     hasKey: function (key) {
-        return (this.get("name").substr(-3) === key);
+        return (this.get("key") === key);
     }
 });
 

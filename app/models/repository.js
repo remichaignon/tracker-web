@@ -61,15 +61,15 @@ var Repository = Model.extend({
                     for (var i = 0; i < labels.length; i++) {
                         var label = labels[i];
 
-                        if (label.hasKey(".bk")) {
+                        if (label.hasKey("bk")) {
                             buckets.push(Model.asResolvedPromise(label));
                             continue;
                         }
-                        if (label.hasKey(".sz")) {
+                        if (label.hasKey("sz")) {
                             sizes.push(Model.asResolvedPromise(label));
                             continue;
                         }
-                        if (label.hasKey(".tm")) {
+                        if (label.hasKey("tm")) {
                             teams.push(Model.asResolvedPromise(label));
                             continue;
                         }

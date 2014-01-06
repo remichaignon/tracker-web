@@ -1,11 +1,6 @@
 import Label from "appkit/models/label";
 
-var Team = Label.extend({
-    readableName: function () {
-        var name = this.get("name");
-        return name.substr(0, name.lastIndexOf("."));
-    }.property("name")
-});
+var Team = Label.extend({});
 
 Team.reopenClass({
     _defaults: [
