@@ -14,22 +14,24 @@
     {{/if}}
 </div>
 
-<ul>
+<ul class="columns">
     {{#each issuesByBuckets}}
-        <li>{{readableName}}</li>
-        <ul>
-            {{#each issues}}
-                <li>
-                    {{#if priority}}{{priority}} - {{/if}}{{title}} - {{body}} - {{size.readableName}} - {{team.readableName}}
-                    <button {{action "increasePriority" this on="click"}}>↑</button>
-                    <button {{action "decreasePriority" this on="click"}}>↓</button>
-                    <button {{action "moveIssueToPreviousBucket" this on="click"}}>Previous</button>
-                    <button {{action "moveIssueToNextBucket" this on="click"}}>Next</button>
-                </li>
-            {{else}}
-                NO ISSUES
-            {{/each}}
-        </ul>
+        <li class="column">
+            {{readableName}}
+            <ul>
+                {{#each issues}}
+                    <li class="issue">
+                        {{#if priority}}{{priority}} - {{/if}}{{title}} - {{body}} - {{size.readableName}} - {{team.readableName}}
+                        <button {{action "increasePriority" this on="click"}}>↑</button>
+                        <button {{action "decreasePriority" this on="click"}}>↓</button>
+                        <button {{action "moveIssueToPreviousBucket" this on="click"}}>Previous</button>
+                        <button {{action "moveIssueToNextBucket" this on="click"}}>Next</button>
+                    </li>
+                {{else}}
+                    NO ISSUES
+                {{/each}}
+            </ul>
+        </li>
     {{else}}
         PARSING ISSUES...
     {{/each}}
